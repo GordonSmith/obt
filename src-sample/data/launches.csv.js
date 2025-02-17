@@ -1,5 +1,5 @@
-import {csvFormat, tsvParse} from "d3-dsv";
-import {utcParse} from "d3-time-format";
+import { csvFormat, tsvParse } from "d3-dsv";
+import { utcParse } from "d3-time-format";
 
 async function text(url) {
   const response = await fetch(url);

@@ -3,69 +3,145 @@ toc: false
 ---
 
 <div class="hero">
-  <h1>Obt</h1>
-  <h2>Welcome to your new app! Edit&nbsp;<code style="font-size: 90%;">src/index.md</code> to change this page.</h2>
-  <a href="https://observablehq.com/framework/getting-started">Get started<span style="display: inline-block; margin-left: 0.25rem;">↗︎</span></a>
+  <h1>OBT</h1>
 </div>
 
-<div class="grid grid-cols-2" style="grid-auto-rows: 504px;">
-  <div class="card">${
-    resize((width) => Plot.plot({
-      title: "Your awesomeness over time 🚀",
-      subtitle: "Up and to the right!",
-      width,
-      y: {grid: true, label: "Awesomeness"},
-      marks: [
-        Plot.ruleY([0]),
-        Plot.lineY(aapl, {x: "Date", y: "Close", tip: true})
-      ]
-    }))
-  }</div>
-  <div class="card">${
-    resize((width) => Plot.plot({
-      title: "How big are penguins, anyway? 🐧",
-      width,
-      grid: true,
-      x: {label: "Body mass (g)"},
-      y: {label: "Flipper length (mm)"},
-      color: {legend: true},
-      marks: [
-        Plot.linearRegressionY(penguins, {x: "body_mass_g", y: "flipper_length_mm", stroke: "species"}),
-        Plot.dot(penguins, {x: "body_mass_g", y: "flipper_length_mm", stroke: "species", tip: true})
-      ]
-    }))
-  }</div>
+<div class="grid grid-cols-2">
+  <div class="card">
+    <h2>Number of OBT runs</h2>
+    <span class="big">${data.runCount}</span>
+    <span class="muted"> In the last ${d3.utcDay.count(since, Date.now())} days</span>
+  </div>
+  <div class="card">
+    <h2>Total number of tests</h2>
+    <span class="big">${numberFormat(data.total)}</span>
+    <span class="muted"> taking ${durationFormat(data.seconds)}</span>
+  </div>
 </div>
+<div class="grid grid-cols-4">
+  <div class="card">
+    <h2>Passed</h2>
+    <span class="big green">${pctFormat(data.pass/data.total)}</span>
+  </div>
+  <div class="card">
+    <h2>Failed</h2>
+    <span class="big red">${pctFormat(data.fail/data.total)}</span>
+  </div>
+  <div class="card">
+    <h2>Error</h2>
+    <span class="big red">${pctFormat(data.error/data.total)}</span>
+  </div>
+  <div class="card">
+    <h2>Timeout</h2>
+    <span class="big yellow">${pctFormat(data.timeout/data.total)}</span>
+  </div>
+</div>
+<div class="grid grid-cols-1">
+  <div class="card">
+    <h2>Totals</h2>
+    <span>${taskPlot(taskPlotData)}</span>
+  </div>
+</div>
+<div class="grid grid-cols-1">
+  <div class="card">
+    <h2>Branches</h2>
+    <span>${taskPlot(branchesPlotData, "branch")}</span>
+  </div>
+</div>
+<div class="grid grid-cols-1">
+  <div class="card">
+    <h2>Build systems</h2>
+    <span>${taskPlot(buildSystemsPlotData, "buildSystem")}</span>
+  </div>
+</div>
+
+```ts
+import { fetchSummary } from "./lib/summary.js";
+
+const data = await fetchSummary();
+const since =  new Date(data.since);
+const numberFormat = d3.format(",");
+
+const _pctFormat = d3.format(".2~%");
+function pctFormat(value) {
+  const retVal = _pctFormat(value);
+  if (value > 0 && retVal === "0%") {
+    return "< 0.01%";
+  }else if (value < 1 && retVal === "100%") {
+    return ">99.99%";
+  }
+  return retVal;
+}
+
+function durationFormat(seconds) {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs}h ${mins}m ${secs}s`;
+}
+```
+
+```ts
+//  Task Plot ---
+function taskData(root) {
+    return Object.keys(root).map(key => {
+        const task = root[key];
+        return {
+            name:key,
+            seconds: task.seconds ?? 0,
+            color: (task.fail ?? 0) > 0 || (task.error ?? 0) > 0 ? red : 
+                    (task.timeout ?? 0) > 0 ? yellow : green
+        };
+    });
+}
+const taskPlotData = taskData(data.tasks);
+
+const branchesPlotData = [];
+Object.keys(data.branches).forEach(branch => {
+    taskData(data.branches[branch].tasks).forEach(row=>{
+        row.branch = branch;
+        branchesPlotData.push(row);
+    });
+});
+
+const buildSystemsPlotData = [];
+Object.keys(data.buildSystems).forEach(buildSystem => {
+    taskData(data.buildSystems[buildSystem].tasks).forEach(row=>{
+        row.buildSystem = buildSystem;
+        buildSystemsPlotData.push(row);
+    });
+});
+
+function taskPlot(data, facet = "") {
+    return Plot.plot({
+        fill: {legend: true},
+        marginLeft: 180,
+        marginRight: facet ? 80 : 0,
+        marks: [
+            Plot.barX(data, {
+                x: "seconds",
+                y: "name",
+                fy: facet,
+                fill: "color",
+                stroke: "color"
+            })
+        ]
+    });
+}
+```
+
+```js exec hide
+//  Theme Colors ---
+const div = document.querySelector("div");
+const style = getComputedStyle(div);
+const red = style.getPropertyValue("--theme-red");
+const green = style.getPropertyValue("--theme-green");
+const yellow = style.getPropertyValue("--theme-yelow");
+```
 
 ---
 
-## Next steps
-
-Here are some ideas of things you could try…
-
-<div class="grid grid-cols-4">
-  <div class="card">
-    Chart your own data using <a href="https://observablehq.com/framework/lib/plot"><code>Plot</code></a> and <a href="https://observablehq.com/framework/files"><code>FileAttachment</code></a>. Make it responsive using <a href="https://observablehq.com/framework/javascript#resize(render)"><code>resize</code></a>.
-  </div>
-  <div class="card">
-    Create a <a href="https://observablehq.com/framework/project-structure">new page</a> by adding a Markdown file (<code>whatever.md</code>) to the <code>src</code> folder.
-  </div>
-  <div class="card">
-    Add a drop-down menu using <a href="https://observablehq.com/framework/inputs/select"><code>Inputs.select</code></a> and use it to filter the data shown in a chart.
-  </div>
-  <div class="card">
-    Write a <a href="https://observablehq.com/framework/loaders">data loader</a> that queries a local database or API, generating a data snapshot on build.
-  </div>
-  <div class="card">
-    Import a <a href="https://observablehq.com/framework/imports">recommended library</a> from npm, such as <a href="https://observablehq.com/framework/lib/leaflet">Leaflet</a>, <a href="https://observablehq.com/framework/lib/dot">GraphViz</a>, <a href="https://observablehq.com/framework/lib/tex">TeX</a>, or <a href="https://observablehq.com/framework/lib/duckdb">DuckDB</a>.
-  </div>
-  <div class="card">
-    Ask for help, or share your work or ideas, on our <a href="https://github.com/observablehq/framework/discussions">GitHub discussions</a>.
-  </div>
-  <div class="card">
-    Visit <a href="https://github.com/observablehq/framework">Framework on GitHub</a> and give us a star. Or file an issue if you’ve found a bug!
-  </div>
-</div>
+## Debugging
 
 <style>
 
@@ -74,7 +150,7 @@ Here are some ideas of things you could try…
   flex-direction: column;
   align-items: center;
   font-family: var(--sans-serif);
-  margin: 4rem 0 8rem;
+  margin: 2rem 0 2rem;
   text-wrap: balance;
   text-align: center;
 }
