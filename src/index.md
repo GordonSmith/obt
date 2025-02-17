@@ -4,7 +4,12 @@ toc: false
 
 <div class="hero">
   <h1>OBT</h1>
+  <h2>Last Updated:  ${lastUpdate}</h2>
 </div>
+
+```js
+const lastUpdate =  await FileAttachment("./data/lastUpdate.txt").text();
+```
 
 <div class="grid grid-cols-2">
   <div class="card">
@@ -59,6 +64,7 @@ toc: false
 import { fetchSummary } from "./lib/summary.js";
 
 const data = await fetchSummary();
+display(data);
 const since =  new Date(data.since);
 const numberFormat = d3.format(",");
 
@@ -143,8 +149,13 @@ const yellow = style.getPropertyValue("--theme-yelow");
 
 ## Debugging
 
-<style>
+_The following ${data.errors.length} errors that occured during the parsing of the OBT data_
 
+```js
+Inputs.table(data.errors)
+```
+
+<style>
 .hero {
   display: flex;
   flex-direction: column;

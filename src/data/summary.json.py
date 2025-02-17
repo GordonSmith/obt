@@ -53,7 +53,14 @@ class FileSummary(Summary):
 
     def branchDate(self):
         branch_date_str = self.config["BuildSet"]["BranchDate"]
-        dt = datetime.datetime.strptime(branch_date_str, "%a %b %d %H:%M:%S %Y")
+        try:
+            dt = datetime.datetime.strptime(branch_date_str, "%a %b %d %H:%M:%S %Y")
+        except ValueError:
+            try:
+                dt = datetime.datetime.strptime(branch_date_str, "%a %b %d %H:%M:%S %Y %z")
+            except ValueError:
+                dt = datetime.datetime.strptime(self.what[self.what.index('-')+1:], "%Y-%m-%d_%H-%M-%S")
+
         iso_date = iso_date_time(dt)
         return iso_date
 
@@ -118,6 +125,7 @@ class AllSummary(FileSummary):
             "branches": {
                 branch: self.branches[branch].to_object() for branch in self.branches
             },
+            "errors": self.errors,
             **super().to_object(),
         }
 
@@ -196,7 +204,7 @@ def gather_and_process_json_files(directory):
                 file_summary = process_json_file(file_path)
                 all_summary.append(file_summary)
             except Exception as e:
-                all_summary.errors.append({"filename": filename, "error": str(e)})
+                all_summary.errors.append({"filename": filename, "error": str(e), "type": type(e).__name__})
     return all_summary
 
 
