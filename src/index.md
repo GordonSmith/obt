@@ -3,7 +3,6 @@ toc: false
 ---
 
 <div class="hero">
-  <h1>OBT</h1>
   <h2>Last Updated:  ${lastUpdate}</h2>
 </div>
 
