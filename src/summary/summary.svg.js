@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
-import { SummaryPlot } from "../lib/SummaryPlot.js";
+import { SummaryPlot } from "../lib/summaryPlot.js";
+// import { fetchSummary } from "../lib/summary.js";
 
 const {
     values: { name }
@@ -7,6 +8,13 @@ const {
     options: { name: { type: "string" } }
 });
 
+// const summaryData = await fetchSummary();
 const data = [];
+// for (const key in summaryData.when) {
+//     data.push({
+//         date: key,
+//         value: summaryData.when[key].total
+//     });
+// }
 
 process.stdout.write(SummaryPlot(data).outerHTML);

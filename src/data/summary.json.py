@@ -54,10 +54,10 @@ class FileSummary(Summary):
     def branchDate(self):
         branch_date_str = self.config["BuildSet"]["BranchDate"]
         try:
-            dt = datetime.datetime.strptime(branch_date_str, "%a %b %d %H:%M:%S %Y")
+            dt = datetime.datetime.strptime(branch_date_str, "%a %b %d %H:%M:%S %Y %z")
         except ValueError:
             try:
-                dt = datetime.datetime.strptime(branch_date_str, "%a %b %d %H:%M:%S %Y %z")
+                dt = datetime.datetime.strptime(branch_date_str, "%a %b %d %H:%M:%S %Y")
             except ValueError:
                 dt = datetime.datetime.strptime(self.what[self.what.index('-')+1:], "%Y-%m-%d_%H-%M-%S")
 
@@ -87,8 +87,7 @@ class FileSummary(Summary):
 
 
 def iso_date_time(dt):
-    iso_date_time = dt.strftime("%Y-%m-%dT%H:%M:%S%z")
-    return iso_date_time[:-2] + ":" + iso_date_time[-2:]
+    return dt.strftime("%Y-%m-%dT%H:%M:%S%z")
 
 
 class AllSummary(FileSummary):
@@ -96,6 +95,7 @@ class AllSummary(FileSummary):
         super().__init__(what)
         self.buildSystems = {}
         self.branches = {}
+        self.when = {}
         self.runCount = 0
         self.since = iso_date_time(datetime.datetime.now())
         self.errors = []
@@ -109,6 +109,9 @@ class AllSummary(FileSummary):
             if not other.branch() in self.branches:
                 self.branches[other.branch()] = FileSummary(other.what)
             self.branches[other.branch()].append(other)
+            if not other.branchDate() in self.when:
+                self.when[other.branchDate()] = FileSummary(other.what)
+            self.when[other.branchDate()].append(other)
 
             if other.branchDate() < self.since:
                 self.since = other.branchDate()
@@ -124,6 +127,9 @@ class AllSummary(FileSummary):
             },
             "branches": {
                 branch: self.branches[branch].to_object() for branch in self.branches
+            },
+            "when": {
+                when: self.when[when].to_object() for when in self.when
             },
             "errors": self.errors,
             **super().to_object(),

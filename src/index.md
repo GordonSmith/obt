@@ -43,6 +43,12 @@ const lastUpdate =  await FileAttachment("./data/lastUpdate.txt").text();
 <div class="grid grid-cols-1">
   <div class="card">
     <h2>Totals</h2>
+    <span>${Inputs.table(dataRuns, {columns: ["date", "pass", "fail"], sort: "date", reverse: true})}</span>
+  </div>
+</div>
+<div class="grid grid-cols-1">
+  <div class="card">
+    <h2>Totals</h2>
     <span>${taskPlot(taskPlotData)}</span>
   </div>
 </div>
@@ -58,6 +64,22 @@ const lastUpdate =  await FileAttachment("./data/lastUpdate.txt").text();
     <span>${taskPlot(buildSystemsPlotData, "buildSystem")}</span>
   </div>
 </div>
+
+```js
+import { fetchSummary } from "./lib/summary.js";
+
+const summaryData = await fetchSummary();
+const dataRuns = [];
+for (const key in summaryData.when) {
+  dataRuns.push({
+    date: new Date(key),
+    pass: summaryData.when[key].pass,
+    fail: summaryData.when[key].fail,
+    payload: summaryData.when[key]
+  });
+}
+```
+
 
 ```ts
 import { fetchSummary } from "./lib/summary.js";

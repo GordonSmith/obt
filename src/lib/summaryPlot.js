@@ -6,7 +6,7 @@ export function SummaryPlot(
     data,
     {
         label,
-        x = "date",
+        x = "dateRaw",
         y = "value",
         max = quantile(data, 0.995, (d) => d[y]),
         width,
