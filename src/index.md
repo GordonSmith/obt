@@ -40,10 +40,86 @@ const lastUpdate =  await FileAttachment("./data/lastUpdate.txt").text();
     <span class="big yellow">${pctFormat(data.timeout/data.total)}</span>
   </div>
 </div>
+
+```js
+const xdomain = d3.extent(dataTasks, d => d.date);
+const groupedTasks = d3.groups(dataTasks, d => d.task)
+    .map(([key, data]) => ({
+      "Test": key,
+      "Pass": data[0].pass,
+      "Fail": data[0].fail,
+      "Error": data[0].error,
+      "Timeout": data[0].timeout,
+      "Trend": data
+    }));
+```
+
+```js
+const taskTable = Inputs.table(groupedTasks, {
+      columns: ["Test", "Pass", "Trend", "Fail", "Error", "Timeout"], 
+      sort: "date", 
+      format: {
+          Trend: data => sparkarea({
+            data,
+            x: data.map(d => d.date),
+            y: data.map(d => d.fail),
+            xdomain
+          })
+        }
+      });
+
+```
+
+```js
+function sparkarea({
+  data = [],
+  x: X,
+  y: Y,
+  xdomain = d3.extent(X),
+  ydomain = d3.extent([0,...Y, 1]),
+  width = 240,
+  height = 20
+}) {
+  const x = d3.scaleUtc(xdomain, [0, width]);
+  const y = d3.scaleLinear(ydomain, [height, 0]);
+  const area = d3.area()
+      .x((d, i) => x(X[i]))
+      .y1((d, i) => y(Y[i]))
+      .y0(height)
+      .curve(d3.curveStep)
+      .defined((d, i) => !isNaN(X[i]) && !isNaN(Y[i]))
+      ;
+  // debugger;
+  return d3.create("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .style("vertical-align", "middle")
+      .style("margin", "-3px 0")
+      .call(g => g.append("path")
+        .attr("fill", "#faa")
+        .attr("d", area(data)))
+      .call(g => g.append("path")
+        .attr("fill", "none")
+        .attr("stroke", "red")
+        .attr("d", area.lineY1()(data)))
+    .node();
+}
+
+const runsTable = Inputs.table(dataRuns, {
+      columns: ["date", "pass", "fail", "error", "timeout"], 
+    });
+```
+
 <div class="grid grid-cols-1">
   <div class="card">
-    <h2>Totals</h2>
-    <span>${Inputs.table(dataRuns, {columns: ["date", "pass", "fail"], sort: "date", reverse: true})}</span>
+    <h2><b>Most Recent</b>: ${dataTasks[0].date ?? ""}</h2>
+    <span>${taskTable}</span>
+  </div>
+</div>
+<div class="grid grid-cols-1">
+  <div class="card">
+    <h2>All</h2>
+    <span>${runsTable}</span>
   </div>
 </div>
 <div class="grid grid-cols-1">
@@ -52,7 +128,7 @@ const lastUpdate =  await FileAttachment("./data/lastUpdate.txt").text();
     <span>${taskPlot(taskPlotData)}</span>
   </div>
 </div>
-<div class="grid grid-cols-1">
+<!-- <div class="grid grid-cols-1">
   <div class="card">
     <h2>Branches</h2>
     <span>${taskPlot(branchesPlotData, "branch")}</span>
@@ -63,21 +139,37 @@ const lastUpdate =  await FileAttachment("./data/lastUpdate.txt").text();
     <h2>Build systems</h2>
     <span>${taskPlot(buildSystemsPlotData, "buildSystem")}</span>
   </div>
-</div>
+</div> -->
 
 ```js
 import { fetchSummary } from "./lib/summary.js";
 
 const summaryData = await fetchSummary();
 const dataRuns = [];
+const dataTasks = [];
 for (const key in summaryData.when) {
   dataRuns.push({
     date: new Date(key),
     pass: summaryData.when[key].pass,
     fail: summaryData.when[key].fail,
+    error: summaryData.when[key].error,
+    timeout: summaryData.when[key].timeout,
     payload: summaryData.when[key]
   });
+  for (const task in summaryData.when[key].tasks) {
+    dataTasks.push({
+      date: new Date(key),
+      task: task,
+      pass: summaryData.when[key].tasks[task].pass,
+      fail: summaryData.when[key].tasks[task].fail,
+      error: summaryData.when[key].tasks[task].error,
+      timeout: summaryData.when[key].tasks[task].timeout,
+      payload: summaryData.when[key].tasks[task]
+    });
+  }
 }
+dataRuns.sort((a, b) => b.date - a.date);
+dataTasks.sort((a, b) => b.date - a.date);
 ```
 
 
@@ -85,7 +177,6 @@ for (const key in summaryData.when) {
 import { fetchSummary } from "./lib/summary.js";
 
 const data = await fetchSummary();
-display(data);
 const since =  new Date(data.since);
 const numberFormat = d3.format(",");
 
@@ -174,6 +265,13 @@ _The following ${data.errors.length} errors that occured during the parsing of t
 
 ```js
 Inputs.table(data.errors)
+```
+
+
+```js
+display(dataRuns);
+display(dataTasks);
+display(groupedTasks);
 ```
 
 <style>
